@@ -56,6 +56,30 @@ fun Application.configureSerialization(repository: IPokemonRepository) {
                 call.respond(moves)
             }
 
+            get("/{id}/evolveFrom") {
+                val pokemonId = call.parameters["id"]?.toInt()
+                if (pokemonId == null) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@get
+                }
+                val evolveFrom = repository.getEvolvedFrom(pokemonId)
+                if (evolveFrom == null) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(evolveFrom)
+                }
+            }
+
+            get("/{id}/evolveTo") {
+                val pokemonId = call.parameters["id"]?.toInt()
+                if (pokemonId == null) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@get
+                }
+                val evolveTo = repository.getEvolvedTo(pokemonId)
+                call.respond(evolveTo)
+            }
+
             post {
                 try {
                     val pokemon = call.receive<Pokemon>()

@@ -1,10 +1,7 @@
 package com.example.repository
 
 import com.example.db.*
-import com.example.model.Moves
-import com.example.model.Pokemon
-import com.example.model.PokemonMoves
-import com.example.model.Type
+import com.example.model.*
 import org.jetbrains.exposed.sql.Alias
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -74,7 +71,7 @@ class PokemonRepository : IPokemonRepository {
             }
     }
 
-    override suspend fun getEvolvedTo(id: Int): List<Pokemon> = suspendTransaction {
+    override suspend fun getEvolvedTo(id: Int): List<EvolutionModel> = suspendTransaction {
         val pokemon1 = Alias(PokemonTable, "pokemon1")
         val pokemon2 = Alias(PokemonTable, "pokemon2")
 
@@ -87,19 +84,57 @@ class PokemonRepository : IPokemonRepository {
                 pokemon2[PokemonTable.description],
                 pokemon2[PokemonTable.photo],
                 pokemon2[PokemonTable.type1],
-                pokemon2[PokemonTable.type2]
+                pokemon2[PokemonTable.type2],
+                EvolutionTable.condition
             )
             .where { pokemon1[PokemonTable.id] eq id }
             .orderBy(pokemon2[PokemonTable.id])
             .map {
-                Pokemon(
-                    it[PokemonTable.id].value,
-                    it[PokemonTable.name],
-                    it[PokemonTable.description],
-                    it[PokemonTable.photo],
-                    Type.valueOf(it[PokemonTable.type1]),
-                    if (it[PokemonTable.type2] != null) Type.valueOf(it[PokemonTable.type2]!!) else null
+                EvolutionModel(
+                    it[EvolutionTable.condition],
+                    Pokemon(
+                        it[pokemon2[PokemonTable.id]].value,
+                        it[pokemon2[PokemonTable.name]],
+                        it[pokemon2[PokemonTable.description]],
+                        it[pokemon2[PokemonTable.photo]],
+                        Type.valueOf(it[pokemon2[PokemonTable.type1]]),
+                        if (it[pokemon2[PokemonTable.type2]] != null) Type.valueOf(it[pokemon2[PokemonTable.type2]]!!) else null
+                    )
                 )
             }
+    }
+
+    override suspend fun getEvolvedFrom(id: Int): EvolutionModel? = suspendTransaction {
+        val pokemon1 = Alias(PokemonTable, "pokemon1")
+        val pokemon2 = Alias(PokemonTable, "pokemon2")
+
+        val retVal = pokemon1
+            .innerJoin(EvolutionTable, { pokemon1[PokemonTable.id] }, { EvolutionTable.evolveFrom })
+            .innerJoin(pokemon2, { pokemon2[PokemonTable.id] }, { EvolutionTable.evolveTo })
+            .select(
+                pokemon1[PokemonTable.id],
+                pokemon1[PokemonTable.name],
+                pokemon1[PokemonTable.description],
+                pokemon1[PokemonTable.photo],
+                pokemon1[PokemonTable.type1],
+                pokemon1[PokemonTable.type2],
+                EvolutionTable.condition
+            )
+            .where { pokemon2[PokemonTable.id] eq id }
+            .limit(1)
+            .map {
+                EvolutionModel(
+                    it[EvolutionTable.condition],
+                    Pokemon(
+                        it[pokemon1[PokemonTable.id]].value,
+                        it[pokemon1[PokemonTable.name]],
+                        it[pokemon1[PokemonTable.description]],
+                        it[pokemon1[PokemonTable.photo]],
+                        Type.valueOf(it[pokemon1[PokemonTable.type1]]),
+                        if (it[pokemon1[PokemonTable.type2]] != null) Type.valueOf(it[pokemon1[PokemonTable.type2]]!!) else null
+                    )
+                )
+            }
+        if(retVal.size > 0) retVal[0] else null
     }
 }

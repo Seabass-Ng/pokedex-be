@@ -1,5 +1,6 @@
 package com.example.repository
 
+import com.example.model.EvolutionModel
 import com.example.model.Moves
 import com.example.model.Pokemon
 import com.example.model.PokemonMoves
@@ -12,5 +13,6 @@ interface IPokemonRepository {
     suspend fun removePokemon(id: Int): Boolean
     suspend fun moves(): List<Moves>
     suspend fun getAllMovesFromPokemon(id: Int): List<PokemonMoves>
-    suspend fun getEvolvedTo(id: Int): List<Pokemon>
+    suspend fun getEvolvedFrom(id: Int): EvolutionModel?
+    suspend fun getEvolvedTo(id: Int): List<EvolutionModel>
 }
